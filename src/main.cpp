@@ -9,10 +9,18 @@
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
-Model *model = NULL;
+std::unique_ptr<Model> model;
 std::unique_ptr<TGAImage> TextureImage(new TGAImage);
 const int width = 800;
 const int height = 800;
+
+
+// 世界坐标转屏幕坐标, 但保留了z轴的值
+Vec3f world2screen(Vec3f v)
+{
+    return Vec3f(int((v.x + 1.) * width / 2. + .5), int((v.y + 1.) * height / 2. + .5), v.z);
+}
+
 
 // 返回点P相对于三角形ABC的重心坐标
 // P = (1 - u - v)*A + u*B + v*C
@@ -38,8 +46,9 @@ Vec3f barycentric(Vec3f A, Vec3f B, Vec3f C, Vec3f P)
     return Vec3f(-1, 1, 1); // in this case generate negative coordinates, it will be thrown away by the rasterizator
 }
 
-void triangle(Vec3f *pts, std::vector<Vec3f> texture,
-    float *zbuffer, TGAImage &image, std::unique_ptr<TGAImage> &textureImage, float intensity)
+
+void triangle(Vec3f *pts, std::vector<Vec2f>& vts,float *zbuffer,
+    TGAImage &image, std::unique_ptr<TGAImage> &textureImage, float intensity)
 {
     Vec2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
     Vec2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
@@ -53,8 +62,6 @@ void triangle(Vec3f *pts, std::vector<Vec3f> texture,
             bboxmax[j] = std::min(clamp[j], std::max(bboxmax[j], pts[i][j]));
         }
     }
-
-
 
     TGAColor color;
     Vec3f P;
@@ -72,21 +79,28 @@ void triangle(Vec3f *pts, std::vector<Vec3f> texture,
             // P = (1 - u - v)*A + u*B + v*C
             // Pz = (1 - u - v)*Az + u*Bz + v*Cz
             P.z = 0;
-            for (int i = 0; i < 3; i++) P.z += pts[i][2] * bc_screen[i];
+            for (int i = 0; i < 3; i++)
+                P.z += pts[i][2] * bc_screen[i];
 
-
+            // 通过zbuffer判断是否更新点
             if (zbuffer[int(P.x + P.y * width)] < P.z)
             {
                 // 计算纹理坐标
-                int tx = 0, ty = 0;
+                float tx = 0.0, ty = 0.0;
 
+                // 计算插值 (相对于三角形的重心坐标) 得出P点对应的纹理坐标
                 for (int i = 0; i < 3; i ++)
                 {
-                    tx += texture[i][0] * bc_screen[i];
-                    ty += texture[i][0] * bc_screen[i];
+                    tx += vts[i][0] * bc_screen[i];
+                    ty += vts[i][1] * bc_screen[i];
                 }
 
-                color = TextureImage->get(tx, ty);
+                // 乘上宽/高才是具体的坐标
+                tx *= textureImage->get_width();
+                ty *= textureImage->get_height();
+
+
+                color = textureImage->get(tx, ty);
                 color = color * intensity;
 
                 zbuffer[int(P.x + P.y * width)] = P.z;
@@ -96,25 +110,13 @@ void triangle(Vec3f *pts, std::vector<Vec3f> texture,
     }
 }
 
-// 世界坐标转屏幕坐标, 但保留了z轴的值
-Vec3f world2screen(Vec3f v)
-{
-    return Vec3f(int((v.x + 1.) * width / 2. + .5), int((v.y + 1.) * height / 2. + .5), v.z);
-}
 
 int main(int argc, char **argv)
 {
-    if (2 == argc)
-    {
-        model = new Model(argv[1]);
-    }
-    else
-    {
-        model = new Model("../data/african_head.obj");
+    model = std::make_unique<Model>("../data/african_head.obj");
 
-        TextureImage->read_tga_file("../data/african_head_diffuse.tga");
-        TextureImage->flip_vertically();
-    }
+    TextureImage->read_tga_file("../data/african_head_diffuse.tga");
+    TextureImage->flip_vertically();
 
     float *zbuffer = new float[width * height];
     TGAImage image(width, height, TGAImage::RGB);
@@ -122,23 +124,31 @@ int main(int argc, char **argv)
 
     for (int i = width * height; i--; zbuffer[i] = -std::numeric_limits<float>::max());
 
-    for (int i = 0; i < model->nfaces(); i++)
+    for (int i = 0; i < model->nfaces(); i ++)
     {
         std::vector<std::pair<int, int>> face = model->face(i);
         Vec3f pts[3];
         Vec3f world_coords[3];
+        std::vector<Vec2f> vts;
+
+        // obj文件中 f开头的行(f xx/xx/xx xx/xx/xx xx/xx/xx )
+        // 代表了面片的每个点的坐标(第一个数是坐标, 第二个数是对应的纹理的编号)
+        // vt 开头的行(vt  0.00001 0.000002 0.000000) 这里是二维的所以第三个数都为0.0
+        // 代表了对应纹理图的位置, 数据范围是 (0, 1), 所以要乘上纹理图的宽/高.
+        // 所以在渲染每个点时, 要根据该点对应的纹理坐标来获取该点的颜色
         for (int j = 0; j < 3; j++)
         {
             Vec3f v = model->vert(face[j].first);
+            Vec2f vt = model->texture(face[j].second);
 
             world_coords[j] = v;
-
             pts[j] = world2screen(v);
+            vts.push_back(vt);
         }
 
         //三角形法线
         Vec3f n = (world_coords[2] - world_coords[0]) ^
-                    (world_coords[1] - world_coords[0]);
+                  (world_coords[1] - world_coords[0]);
 
         // 设置为单位向量
         n.normalize();
@@ -149,27 +159,18 @@ int main(int argc, char **argv)
         // 强度为负数时, 光照不到三角形, 这样的三角形我们直接忽略.
         if (intensity > 0)
         {
-            std::vector<Vec3f> texture;
-            for (int i = 0; i < 3; i ++)
-            {
-                Vec3f vt = model->texture(face[i].second);
-                texture.push_back(vt);
-            }
-
             triangle(
                 pts,
-                texture,
+                vts,
                 zbuffer,
                 image,
                 TextureImage,
                 intensity
             );
         }
-        // triangle(pts, zbuffer, image, TGAColor(rand() % 255, rand() % 255, rand() % 255, 255));
     }
 
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("output1.tga");
-    delete model;
     return 0;
 }

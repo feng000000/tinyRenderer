@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(tinyRenderer CXX)
 
 # 设置 c++ 版本
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 
 # 设置项目路径
 set(HOME "/home/feng/Code/tinyRenderer")

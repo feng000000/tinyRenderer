@@ -17,6 +17,8 @@ Model::Model(const char *filename) : verts_(), faces_()
         std::getline(in, line);
         std::istringstream iss(line.c_str());
         char trash;
+        int itrash;
+        std::string strash;
         if (!line.compare(0, 2, "v "))
         {
             iss >> trash;
@@ -28,20 +30,21 @@ Model::Model(const char *filename) : verts_(), faces_()
         else if (!line.compare(0, 2, "f "))
         {
             std::vector<std::pair<int, int>> f;
-            int itrash, idx, vtidx;
             iss >> trash;
-            while (iss >> idx >> vtidx >> itrash >> trash >> itrash)
+            int idx, vtidx;
+            while (iss >> idx >> trash >> vtidx >> trash >> itrash)
             {
                 idx--; // in wavefront obj all indices start at 1, not zero
+                vtidx --;
                 f.push_back({idx, vtidx});
             }
             faces_.push_back(f);
         }
         else if (!line.compare(0, 4, "vt  "))
         {
-            iss >> trash >> trash;
-            Vec3f t;
-            for (int i = 0; i < 3; i ++)
+            iss >> strash;
+            Vec2f t;
+            for (int i = 0; i < 2; i ++)
                 iss >> t.raw[i];
             textures_.push_back(t);
         }
@@ -79,7 +82,7 @@ Vec3f Model::vert(int idx)
     return verts_[idx];
 }
 
-Vec3f Model::texture(int idx)
+Vec2f Model::texture(int idx)
 {
     return textures_[idx];
 }
