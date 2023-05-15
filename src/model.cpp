@@ -35,7 +35,7 @@ Model::Model(const char *filename) : verts_(), faces_()
             while (iss >> idx >> trash >> vtidx >> trash >> itrash)
             {
                 idx--; // in wavefront obj all indices start at 1, not zero
-                vtidx --;
+                vtidx--;
                 f.push_back({idx, vtidx});
             }
             faces_.push_back(f);
@@ -44,7 +44,7 @@ Model::Model(const char *filename) : verts_(), faces_()
         {
             iss >> strash;
             Vec2f t;
-            for (int i = 0; i < 2; i ++)
+            for (int i = 0; i < 2; i++)
                 iss >> t.raw[i];
             textures_.push_back(t);
         }
@@ -85,4 +85,37 @@ Vec3f Model::vert(int idx)
 Vec2f Model::texture(int idx)
 {
     return textures_[idx];
+}
+
+void Model::load_texture(std::string filename)
+{
+    this->textureMap.read_tga_file(filename.c_str());
+    this->textureMap.flip_vertically();
+}
+
+// 计算纹理坐标
+// vts为三角形三个点的纹理坐标
+// bc_screen为当前点相对于三角形的重心坐标
+// 返回纹理图上的对应的具体坐标
+Vec2i Model::vtexture(std::vector<Vec2f> &vts, Vec3f &bc_screen)
+{
+    Vec2f res(0.0f, 0.0f);
+
+    // 计算插值 (相对于三角形的重心坐标) 得出P点对应的纹理坐标
+    for (int i = 0; i < 3; i++)
+    {
+        res[0] += vts[i][0] * bc_screen[i];
+        res[1] += vts[i][1] * bc_screen[i];
+    }
+
+    // 乘上宽/高才是具体的坐标
+    return Vec2i(
+        res[0] * this->textureMap.get_width(),
+        res[1] * this->textureMap.get_height());
+}
+
+TGAColor Model::getTexture(std::vector<Vec2f> &vts, Vec3f &bc_screen)
+{
+    Vec2i pos = this->vtexture(vts, bc_screen);
+    return this->textureMap.get(pos.x, pos.y);
 }

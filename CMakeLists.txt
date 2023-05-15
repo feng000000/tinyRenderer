@@ -8,10 +8,10 @@ project(tinyRenderer CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 # 设置项目路径
-set(HOME "/home/feng/Code/tinyRenderer")
+set(HOME ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC "${HOME}/src")
 
-message(${SRC})
+message(${HOME})
 
 # 递归检索目录下所有源文件
 # aux_source_directory(main.cpp,model.cpp,tgaimage.cpp SRCS)
@@ -21,6 +21,7 @@ set(SRCS
     ${SRC}/main.cpp
     ${SRC}/model.cpp
     ${SRC}/tgaimage.cpp
+    ${SRC}/geometry.cpp
 )
 
 # 指定头文件目录, SYSTEM表明是系统头文件

@@ -29,7 +29,9 @@ template <class t> struct Vec3 {
 	};
 	Vec3() : x(0), y(0), z(0) {}
 	Vec3(t _x, t _y, t _z) : x(_x),y(_y),z(_z) {}
-    template <class u> Vec3<t>(const Vec3<u> &v);
+
+	template <class u> Vec3(const Vec3<u> &v);
+	// template <class u> Vec3(u x, u y, u z);
 
 	inline Vec3<t> operator ^(const Vec3<t> &v) const { return Vec3<t>(y*v.z-z*v.y, z*v.x-x*v.z, x*v.y-y*v.x); }
 	inline Vec3<t> operator +(const Vec3<t> &v) const { return Vec3<t>(x+v.x, y+v.y, z+v.z); }
@@ -52,6 +54,7 @@ typedef Vec3<int>   Vec3i;
 
 template <> template <> Vec3<int>::Vec3(const Vec3<float> &v);
 template <> template <> Vec3<float>::Vec3(const Vec3<int> &v);
+// template <> template <> Vec3<float>::Vec3(int x, int y, int z);
 
 template <class t> std::ostream& operator<<(std::ostream& s, Vec2<t>& v) {
 	s << "(" << v.x << ", " << v.y << ")\n";
