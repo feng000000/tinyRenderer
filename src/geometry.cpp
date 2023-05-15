@@ -12,10 +12,6 @@ template <>
 template <>
 Vec3<float>::Vec3(const Vec3<int> &v) : x(v.x), y(v.y), z(v.z) {}
 
-// template <>
-// template <>
-// Vec3<float>::Vec3(int x, int y, int z) : x(x), y(y), z(z) {}
-
 Matrix::Matrix(int r, int c) : m(std::vector<std::vector<float>>(r, std::vector<float>(c, 0.f))), rows(r), cols(c) {}
 
 int Matrix::nrows()
@@ -66,7 +62,6 @@ Matrix Matrix::operator*(const Matrix &a)
     return result;
 }
 
-// 求转置矩阵
 Matrix Matrix::transpose()
 {
     Matrix result(cols, rows);
@@ -76,7 +71,6 @@ Matrix Matrix::transpose()
     return result;
 }
 
-// 求逆矩阵
 Matrix Matrix::inverse()
 {
     assert(rows == cols);

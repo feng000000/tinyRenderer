@@ -7,11 +7,6 @@
 #include "model.h"
 #include "geometry.h"
 
-#include <fstream>
-
-
-using std::cout;
-using std::endl;
 
 const int width = 800;
 const int height = 800;
@@ -20,20 +15,6 @@ const int depth = 255;
 std::unique_ptr<Model> model;
 float zbuffer[width * height];
 Vec3f cameraPos(0, 0, 3);
-
-
-// int trangleCnt = 0;
-// int allTrangleCnt = 0;
-
-
-// 世界坐标转屏幕坐标, 但保留了z轴的值
-Vec3f world2screen(Vec3f v)
-{
-    return Vec3f(
-        int((v.x + 1.) * width / 2. + .5),
-        int((v.y + 1.) * height / 2. + .5),
-        v.z);
-}
 
 
 Matrix vertex2homo(Vec3f v)
@@ -129,12 +110,7 @@ void triangle(Vec3f *pts, std::vector<Vec2f> &vts, TGAImage &image, float intens
 
             if (zbuffer[int(P.x + P.y * width)] <= P.z)
             {
-                // trangleCnt ++;
                 color = model->getTexture(vts, bc_screen);
-
-                // color.r = 255;
-                // color.g = 255;
-                // color.b = 255;
                 color = color *  intensity;
 
                 zbuffer[int(P.x + P.y * width)] = P.z;
@@ -167,7 +143,6 @@ int main(int argc, char **argv)
     Matrix projection = projectionMatrix();
     Matrix viewPort = viewport(width / 8, height / 8, width * 3 / 4, height * 3 / 4);
 
-    // std::ofstream fout("/home/feng/Code/test/output2.txt", std::ios::out);
     for (int i = 0; i < model->nfaces(); i ++)
     {
         std::vector<std::pair<int, int>> face = model->face(i);
@@ -187,11 +162,8 @@ int main(int argc, char **argv)
             // TODO: 浮点数要四舍五入, 不然有的三角形渲染不出来?
             // pts[j] =  Vec3f(Vec3i(home2vertex(viewPort * projection * vertex2homo(v))));
 
-            // fout << pts[j] << " ";
-
             vts.push_back(vt);
         }
-        // fout << std::endl;
 
         Vec3f n = (world_coords[2] - world_coords[0]) ^
                   (world_coords[1] - world_coords[0]);
@@ -201,10 +173,7 @@ int main(int argc, char **argv)
 
         if (intensity > 0)
             triangle(pts, vts, image, intensity);
-        // allTrangleCnt ++;
     }
-    // std::cout << "draw trangle == " << trangleCnt << std::endl;
-    // std::cout << "all trangle == " << allTrangleCnt << std::endl;
 
     image.flip_vertically();
     image.write_tga_file("output.tga");
