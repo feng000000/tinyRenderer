@@ -14,15 +14,7 @@ set(SRC "${HOME}/src")
 message(${HOME})
 
 # 递归检索目录下所有源文件
-# aux_source_directory(main.cpp,model.cpp,tgaimage.cpp SRCS)
-
-# 添加源文件
-set(SRCS
-    ${SRC}/main.cpp
-    ${SRC}/model.cpp
-    ${SRC}/tgaimage.cpp
-    ${SRC}/geometry.cpp
-)
+aux_source_directory(src SRCS)
 
 # 指定头文件目录, SYSTEM表明是系统头文件
 include_directories("${HOME}/include/")
