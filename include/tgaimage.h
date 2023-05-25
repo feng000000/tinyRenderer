@@ -38,6 +38,10 @@ struct TGAColor
 	{
 	}
 
+	TGAColor(unsigned char R, unsigned char G, unsigned char B) : b(B), g(G), r(R), a(0), bytespp(4)
+	{
+	}
+
 	TGAColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A) : b(B), g(G), r(R), a(A), bytespp(4)
 	{
 	}
@@ -71,10 +75,10 @@ struct TGAColor
 	TGAColor operator *(float intensity) const {
         TGAColor res = *this;
         intensity = (intensity > 1.f ? 1.f : (intensity < 0.f ? 0.f : intensity));
-		res.b = b * intensity;
-		res.r = r * intensity;
-		res.g = g * intensity;
-		res.b = b * intensity;
+		res.b = static_cast<unsigned char>(b * intensity);
+		res.r = static_cast<unsigned char>(r * intensity);
+		res.g = static_cast<unsigned char>(g * intensity);
+		res.a = static_cast<unsigned char>(a * intensity);
         return res;
 	}
 };
