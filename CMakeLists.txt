@@ -5,13 +5,14 @@ cmake_minimum_required(VERSION 3.22.1)
 project(tinyRenderer CXX)
 
 # 设置 c++ 版本
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 # 设置项目路径
 set(HOME ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC "${HOME}/src")
 
 message(${HOME})
+message("cpp standard: " ${CMAKE_CXX_STANDARD})
 
 # 递归检索目录下所有源文件
 aux_source_directory(src SRCS)

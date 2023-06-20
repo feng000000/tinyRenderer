@@ -8,7 +8,7 @@
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
-
+#include "camera.h"
 
 template <class t>
 using vector = std::vector<t>;
@@ -16,12 +16,14 @@ using vector = std::vector<t>;
 const int width = 800;
 const int height = 800;
 const int depth = 255;
+
 std::unique_ptr<Model> model;
 float zbuffer[width * height];
-Vec3f cameraPos(0, 0, 3);
-Vec3f light_dir(0, 0, -1);
-
-TGAColor RandColor;
+Vec3f cameraPos = Vec3f(0, 1, 3);
+Vec3f lookPos   = Vec3f(0, 0, 0);
+Vec3f upDir     = Vec3f(0, 1, 0);
+Vec3f light_dir = Vec3f(1, -1, 1).normalize();
+Camera camera(cameraPos, lookPos - cameraPos, upDir);
 
 
 Matrix vertex2homo(Vec3f v)
@@ -111,6 +113,7 @@ void triangle(Vec3f Intensitys, Vec3f *pts, vector<Vec2f> &vts, TGAImage &image)
 
             if (zbuffer[int(P.x + P.y * width)] <= P.z)
             {
+                color = TGAColor(255, 255, 255);
                 color = model->getTexture(vts, bc_screen);
                 color = color * (Intensitys * bc_screen);
 
@@ -157,18 +160,18 @@ int main(int argc, char **argv)
 
         for (int j = 0; j < 3; j ++)
         {
-            Vec3f v     = model->vert(i, j);
-            Vec2f vt    = model->texture(i, j);
+            Vec3f v          = model->vert(i, j);
+            Vec2f vt         = model->texture(i, j);
             float intensity  = model->normal(i, j).normalize() * light_dir;
 
-            Intensitys[j]   = std::fabs(intensity);
-            world_coords[j] = v;
-            pts[j]          = round(homo2vertex(viewPort * projection * vertex2homo(v)));
+            world_coords[j]  = v;
+            Intensitys[j]    = std::max(0.f, intensity);
+            pts[j]           = round(homo2vertex(viewPort * projection * camera.viewMatrix() * vertex2homo(v)));
+            // pts[j]          = round(homo2vertex(viewPort * projection * lookat(cameraPos, look, up) * vertex2homo(v)));
 
             vts.push_back(vt);
         }
 
-        RandColor = TGAColor(rand() % 255, rand() % 255, rand() % 255);
         triangle(Intensitys, pts, vts, image);
     }
 
