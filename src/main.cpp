@@ -8,7 +8,7 @@
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
-#include "camera.h"
+#include "mygl.h"
 
 template <class t>
 using vector = std::vector<t>;
@@ -19,16 +19,16 @@ const int depth = 255;
 
 std::unique_ptr<Model> model;
 float zbuffer[width * height];
-Vec3f cameraPos = Vec3f(0, 1, 3);
+Vec3f cameraPos = Vec3f(1, 1, 3);
 Vec3f lookPos   = Vec3f(0, 0, 0);
 Vec3f upDir     = Vec3f(0, 1, 0);
-Vec3f light_dir = Vec3f(1, -1, 1).normalize();
-Camera camera(cameraPos, lookPos - cameraPos, upDir);
+// 光线的反方向(光线从该点射向原点), 这样方便判断光线是否照到平面. (light_dir点乘法向量 > 0)
+Vec3f light_dir = Vec3f(1, -1, 2).normalize();
 
 
-Matrix vertex2homo(Vec3f v)
+Matrix<4, 1, float> vertex2homo(Vec3f v)
 {
-    Matrix m(4, 1);
+    Matrix<4, 1, float> m;
     m[0][0] = v.x;
     m[1][0] = v.y;
     m[2][0] = v.z;
@@ -36,7 +36,7 @@ Matrix vertex2homo(Vec3f v)
     return m;
 }
 
-Vec3f homo2vertex(Matrix m)
+Vec3f homo2vertex(Matrix<4, 1, float> m)
 {
     return Vec3f(
         m[0][0] / m[3][0],
@@ -45,9 +45,9 @@ Vec3f homo2vertex(Matrix m)
 }
 
 
-Matrix viewport(int x, int y, int w, int h)
+Matrix4f viewport(int x, int y, int w, int h)
 {
-    Matrix m = Matrix::identity(4);
+    Matrix4f m = Matrix4f::identity();
     m[0][3] = x + w / 2.f;
     m[1][3] = y + h / 2.f;
     m[2][3] = depth / 2.f;
@@ -60,9 +60,9 @@ Matrix viewport(int x, int y, int w, int h)
 }
 
 
-Matrix projectionMatrix()
+Matrix4f projectionMatrix()
 {
-    Matrix p = Matrix::identity(4);
+    Matrix4f p = Matrix4f::identity();
 
     p[3][2] = -1.f / cameraPos.z;
 
@@ -114,7 +114,8 @@ void triangle(Vec3f Intensitys, Vec3f *pts, vector<Vec2f> &vts, TGAImage &image)
             if (zbuffer[int(P.x + P.y * width)] <= P.z)
             {
                 color = TGAColor(255, 255, 255);
-                color = model->getTexture(vts, bc_screen);
+                // color = model->getTexture(vts, bc_screen);
+
                 color = color * (Intensitys * bc_screen);
 
                 zbuffer[int(P.x + P.y * width)] = P.z;
@@ -129,11 +130,9 @@ void triangle(Vec3f Intensitys, Vec3f *pts, vector<Vec2f> &vts, TGAImage &image)
 Vec3f round(Vec3f p)
 {
     return Vec3f(
-        Vec3i(
-            int(p.x + 0.5f),
-            int(p.y + 0.5f),
-            int(p.z + 0.5f)
-    ));
+        int(p.x + 0.5f),
+        int(p.y + 0.5f),
+        int(p.z + 0.5f));
 }
 
 
@@ -146,9 +145,9 @@ int main(int argc, char **argv)
         zbuffer[i] = -std::numeric_limits<float>::max();
 
     TGAImage image(width, height, TGAImage::RGB);
-    Matrix projection   = projectionMatrix();
-    Matrix viewPort     = viewport(width / 8, height / 8,
-                                   width * 3 / 4, height * 3 / 4);
+    Matrix4f projection   = projectionMatrix();
+    Matrix4f viewPort     = viewport(width / 8, height / 8, width * 3 / 4, height * 3 / 4);
+    Matrix4f view         = mygl::viewMatrix(cameraPos, lookPos - cameraPos, upDir);
 
     for (int i = 0; i < model->nfaces(); i ++)
     {
@@ -166,8 +165,7 @@ int main(int argc, char **argv)
 
             world_coords[j]  = v;
             Intensitys[j]    = std::max(0.f, intensity);
-            pts[j]           = round(homo2vertex(viewPort * projection * camera.viewMatrix() * vertex2homo(v)));
-            // pts[j]          = round(homo2vertex(viewPort * projection * lookat(cameraPos, look, up) * vertex2homo(v)));
+            pts[j]           = round(homo2vertex(viewPort * projection * view * vertex2homo(v)));
 
             vts.push_back(vt);
         }

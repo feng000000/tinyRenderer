@@ -10,9 +10,9 @@ Camera::Camera(Vec3f cameraPos, Vec3f lookDir, Vec3f upDir)
     rightDir_   = (lookDir ^ upDir).normalize();
 }
 
-Matrix Camera::viewMatrix()
+Matrix4f Camera::viewMatrix()
 {
-    Matrix Rview = Matrix::identity(4);
+    Matrix4f Rview = Matrix4f::identity();
     Rview[0][0] = OX().x;
     Rview[0][1] = OX().y;
     Rview[0][2] = OX().z;

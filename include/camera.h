@@ -5,7 +5,7 @@ class Camera
 {
 public:
     Camera(Vec3f pos, Vec3f lookDir, Vec3f upDir);
-    Matrix viewMatrix();
+    Matrix4f viewMatrix();
 
 private:
     Vec3f pos_;

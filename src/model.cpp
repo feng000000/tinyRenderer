@@ -25,7 +25,7 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
             iss >> trash;
             Vec3f v;
             for (int i = 0; i < 3; i++)
-                iss >> v.raw[i];
+                iss >> v[i];
             verts_.push_back(v);
         }
         else if (!line.compare(0, 2, "f "))
@@ -55,7 +55,7 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
             iss >> strash;
             Vec2f t;
             for (int i = 0; i < 2; i++)
-                iss >> t.raw[i];
+                iss >> t[i];
             textures_.push_back(t);
         }
         else if (!line.compare(0, 4, "vn  "))
@@ -63,7 +63,7 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
             iss >> strash;
             Vec3f t;
             for (int i = 0; i < 3; i ++)
-                iss >> t.raw[i];
+                iss >> t[i];
             normals_.push_back(t);
         }
     }
