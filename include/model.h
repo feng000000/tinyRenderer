@@ -20,11 +20,6 @@ public:
 	Vec3f nVert(int idx);
 	Vec3f nNorm(int idx);
 	Vec2f nTexture(int idx);
-
-	// Vec3f& operator[](int idx)
-	// {
-	// 	if (idx == 0) return
-	// }
 private:
 	Vec3f verts_[3];
 	Vec3f norms_[3];
@@ -37,9 +32,7 @@ private:
 	std::vector<Vec3f> normals_;
 	std::vector<Vec2f> textures_;
 	std::vector<Trangle> faces_;
-
 	TGAImage textureMap;
-	Vec2i vtexture(std::vector<Vec2f> &vts, Vec3f &bc_screen);
 public:
 	Model(const char *filename);
 	~Model();
@@ -52,7 +45,7 @@ public:
 	Vec3f normal(int iface, int ivert);
 	Vec2f texture(int iface, int ivert);
 	void load_texture(std::string filename);
-	TGAColor getTexture(std::vector<Vec2f> &vts, Vec3f &bc_screen);
+	TGAColor getTexture(Vec2f uv);
 };
 
 #endif //__MODEL_H__

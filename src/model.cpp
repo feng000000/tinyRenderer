@@ -6,6 +6,7 @@
 #include "model.h"
 
 // ------------------- Model Class ------------------- //
+
 Model::Model(const char *filename) : verts_(), faces_(), normals_()
 {
     std::ifstream in;
@@ -95,19 +96,19 @@ Trangle Model::face(int idx)
     return faces_[idx];
 }
 
-
+// 获取顶点坐标, 参数为三角形编号和顶点编号
 Vec3f Model::vert(int iface, int ivert)
 {
     return faces_[iface].nVert(ivert);
 }
 
-
+// 获取法线坐标, 参数为三角形编号和顶点编号
 Vec3f Model::normal(int iface, int ivert)
 {
     return faces_[iface].nNorm(ivert);
 }
 
-
+// 获取纹理坐标, 参数为三角形编号和顶点编号
 Vec2f Model::texture(int iface, int ivert)
 {
     return faces_[iface].nTexture(ivert);
@@ -120,31 +121,12 @@ void Model::load_texture(std::string filename)
     this->textureMap.flip_vertically();
 }
 
-// 计算纹理坐标
-// vts为三角形三个点的纹理坐标
-// bc_screen为当前点相对于三角形的重心坐标
-// 返回纹理图上的对应的具体坐标
-Vec2i Model::vtexture(std::vector<Vec2f> &vts, Vec3f &bc_screen)
+
+// 获取纹理, 参数为纹理坐标
+TGAColor Model::getTexture(Vec2f uv)
 {
-    Vec2f res(0.0f, 0.0f);
-
-    // 计算插值 (相对于三角形的重心坐标) 得出P点对应的纹理坐标
-    for (int i = 0; i < 3; i++)
-    {
-        res[0] += vts[i][0] * bc_screen[i];
-        res[1] += vts[i][1] * bc_screen[i];
-    }
-
-    // 乘上宽/高才是具体的坐标
-    return Vec2i(
-        res[0] * this->textureMap.get_width(),
-        res[1] * this->textureMap.get_height());
-}
-
-TGAColor Model::getTexture(std::vector<Vec2f> &vts, Vec3f &bc_screen)
-{
-    Vec2i pos = this->vtexture(vts, bc_screen);
-    return this->textureMap.get(pos.x, pos.y);
+    return this->textureMap.get(uv[0] * this->textureMap.get_width(),
+                                uv[1] * this->textureMap.get_height());
 }
 
 
@@ -152,10 +134,6 @@ int Model::nnormals()
 {
     return int(normals_.size());
 }
-
-
-
-// ------------------- Model Class ------------------- //
 
 // --------------------  Trangle Class -------------------- //
 
@@ -207,5 +185,3 @@ Vec2f Trangle::nTexture(int idx)
 {
     return textures_[idx];
 }
-
-// --------------------  Trangle Class -------------------- //
