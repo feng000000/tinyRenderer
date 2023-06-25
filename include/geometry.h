@@ -7,6 +7,7 @@
 template <size_t DimCols, size_t DimRows, typename T> class Matrix;
 
 // --------------- vector --------------- //
+
 template <size_t DIM, typename T>
 class Vec
 {
@@ -178,8 +179,6 @@ std::ostream &operator<< (std::ostream &out, Vec<DIM, T> &v)
 }
 
 
-
-
 // --------------- determinant ---------------//
 
 template <size_t DIM, typename T>
@@ -202,7 +201,6 @@ struct Determinant<1, T>
         return src[0][0];
     }
 };
-
 
 
 // --------------- matrix ---------------//
@@ -334,8 +332,6 @@ std::ostream &operator<< (std::ostream &out, Matrix<DimRows, DimCols, T> &m)
         out << m[i] << std::endl;
     return out;
 }
-
-
 
 
 using Vec2f     = Vec<2, float>;

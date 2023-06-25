@@ -33,7 +33,6 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
             std::vector<Vec3i> f;
             iss >> trash;
             int idx, vtidx, nidx;
-            // Trangle face;
             vector<Vec3f> nVerts;
             vector<Vec3f> nNorms;
             vector<Vec2f> nTextures;
@@ -42,7 +41,6 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
                 idx --; // in wavefront obj all indices start at 1, not zero
                 vtidx --;
                 nidx --;
-                // f.push_back(Vec3i(idx, vtidx, nidx));
                 nVerts.push_back(verts_[idx]);
                 nTextures.push_back(textures_[vtidx]);
                 nNorms.push_back(normals_[nidx]);

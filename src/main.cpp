@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
-#include <cmath>
 
 #include "tgaimage.h"
 #include "model.h"
@@ -18,162 +17,75 @@ const int height = 800;
 const int depth = 255;
 
 std::unique_ptr<Model> model;
-float zbuffer[width * height];
-Vec3f cameraPos = Vec3f(1, 1, 3);
+Vec3f cameraPos = Vec3f(0, -1, 3);
 Vec3f lookPos   = Vec3f(0, 0, 0);
-Vec3f upDir     = Vec3f(0, 1, 0);
+Vec3f upPos     = Vec3f(0, 1, 0);
 // 光线的反方向(光线从该点射向原点), 这样方便判断光线是否照到平面. (light_dir点乘法向量 > 0)
-Vec3f light_dir = Vec3f(1, -1, 2).normalize();
+Vec3f light_dir = Vec3f(1, 1, 1);
 
 
-Matrix<4, 1, float> vertex2homo(Vec3f v)
+// 采用Gourand着色模型的着色器
+class GouraudShader : public mygl::IShader
 {
-    Matrix<4, 1, float> m;
-    m[0][0] = v.x;
-    m[1][0] = v.y;
-    m[2][0] = v.z;
-    m[3][0] = 1.0f;
-    return m;
-}
+public:
+    Vec3f varying_intensity; // written by vertex shader, read by fragment shader
 
-Vec3f homo2vertex(Matrix<4, 1, float> m)
-{
-    return Vec3f(
-        m[0][0] / m[3][0],
-        m[1][0] / m[3][0],
-        m[2][0] / m[3][0]);
-}
-
-
-Matrix4f viewport(int x, int y, int w, int h)
-{
-    Matrix4f m = Matrix4f::identity();
-    m[0][3] = x + w / 2.f;
-    m[1][3] = y + h / 2.f;
-    m[2][3] = depth / 2.f;
-
-    m[0][0] = w / 2.f;
-    m[1][1] = h / 2.f;
-    m[2][2] = depth / 2.f;
-
-    return m;
-}
-
-
-Matrix4f projectionMatrix()
-{
-    Matrix4f p = Matrix4f::identity();
-
-    p[3][2] = -1.f / cameraPos.z;
-
-    return p;
-}
-
-
-Vec3f barycentric(Vec3f A, Vec3f B, Vec3f C, Vec3f P)
-{
-    Vec3f u = Vec3f(C[0] - A[0], B[0] - A[0], A[0] - P[0]) ^
-              Vec3f(C[1] - A[1], B[1] - A[1], A[1] - P[1]);
-
-    if (std::abs(u[2]) > 1e-2) // u[2] 是整数. If it is zero then triangle ABC is degenerate
-        return Vec3f(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
-    return Vec3f(-1, 1, 1);
-}
-
-
-void triangle(Vec3f Intensitys, Vec3f *pts, vector<Vec2f> &vts, TGAImage &image)
-{
-    Vec2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-    Vec2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-    Vec2f clamp(image.get_width() - 1, image.get_height() - 1);
-
-    for (int i = 0; i < 3; i++)
+    // iface为三角形编号
+    // nthvert为顶点编号
+    // 返回屏幕坐标
+    virtual Vec4f vertex(int iface, int nthvert) override
     {
-        for (int j = 0; j < 2; j++)
-        {
-            bboxmin[j] = std::max(0.f, std::min(bboxmin[j], pts[i][j]));
-            bboxmax[j] = std::min(clamp[j], std::max(bboxmax[j], pts[i][j]));
-        }
+        using namespace mygl;
+
+        Vec4f gl_Vertex = embed<4>(model->vert(iface, nthvert), 1.0f); // read the vertex from .obj file
+
+        gl_Vertex = viewport *  projection *  modelView * gl_Vertex;     // transform it to screen coordinates
+        varying_intensity[nthvert] = std::max(0.f, model->normal(iface, nthvert) * light_dir); // get diffuse lighting intensity
+
+        return gl_Vertex;
     }
 
-    TGAColor color;
-    Vec3f P;
-    for (P.x = bboxmin.x; P.x <= bboxmax.x; P.x++)
+    // bar为当前像素相对于三角形的重心坐标
+    // color为当前像素的颜色
+    // 返回是否丢弃该像素
+    virtual bool fragment(Vec3f bar, TGAColor &color) override
     {
-        for (P.y = bboxmin.y; P.y <= bboxmax.y; P.y++)
-        {
-            Vec3f bc_screen = barycentric(pts[0], pts[1], pts[2], P);
+        // 通过重心坐标插值计算强度
+        float intensity = varying_intensity * bar;
 
-            if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)
-                continue;
+        color = TGAColor(255, 255, 255) * intensity;
 
-            P.z = 0;
-            for (int i = 0; i < 3; i++)
-                P.z += pts[i][2] * bc_screen[i];
-
-            if (zbuffer[int(P.x + P.y * width)] <= P.z)
-            {
-                color = TGAColor(255, 255, 255);
-                // color = model->getTexture(vts, bc_screen);
-
-                color = color * (Intensitys * bc_screen);
-
-                zbuffer[int(P.x + P.y * width)] = P.z;
-
-                image.set(P.x, P.y, color);
-            }
-        }
+        // 是否丢弃该像素
+        return false;
     }
-}
-
-
-Vec3f round(Vec3f p)
-{
-    return Vec3f(
-        int(p.x + 0.5f),
-        int(p.y + 0.5f),
-        int(p.z + 0.5f));
-}
-
+};
 
 int main(int argc, char **argv)
 {
     model = std::make_unique<Model>("../data/african_head.obj");
     model->load_texture("../data/african_head_diffuse.tga");
 
-    for (int i = 0; i < width * height; i ++)
-        zbuffer[i] = -std::numeric_limits<float>::max();
+    mygl::viewMatrix(cameraPos, lookPos, upPos);
+    mygl::viewportMatrix(width / 8, height / 8, width * 3 / 4, height * 3 / 4);
+    mygl::projectionMatrix( -1.f / (cameraPos - lookPos).norm());
+    light_dir.normalize();
 
-    TGAImage image(width, height, TGAImage::RGB);
-    Matrix4f projection   = projectionMatrix();
-    Matrix4f viewPort     = viewport(width / 8, height / 8, width * 3 / 4, height * 3 / 4);
-    Matrix4f view         = mygl::viewMatrix(cameraPos, lookPos - cameraPos, upDir);
+    TGAImage image  (width, height, TGAImage::RGB);
+    TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
+    GouraudShader shader;
 
     for (int i = 0; i < model->nfaces(); i ++)
     {
-        Trangle face = model->face(i);
-        Vec3f pts[3];
-        Vec3f world_coords[3];
-        Vec3f Intensitys;
-        vector<Vec2f> vts;
-
+        Vec4f screen_coords[3];
         for (int j = 0; j < 3; j ++)
-        {
-            Vec3f v          = model->vert(i, j);
-            Vec2f vt         = model->texture(i, j);
-            float intensity  = model->normal(i, j).normalize() * light_dir;
-
-            world_coords[j]  = v;
-            Intensitys[j]    = std::max(0.f, intensity);
-            pts[j]           = round(homo2vertex(viewPort * projection * view * vertex2homo(v)));
-
-            vts.push_back(vt);
-        }
-
-        triangle(Intensitys, pts, vts, image);
+            screen_coords[j] = shader.vertex(i, j);
+        triangle(screen_coords, shader, image, zbuffer);
     }
 
     image.flip_vertically();
+    zbuffer.flip_vertically();
     image.write_tga_file("output.tga");
+    zbuffer.write_tga_file("zbuffer.tga");
+
     return 0;
 }

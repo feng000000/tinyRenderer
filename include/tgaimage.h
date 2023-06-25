@@ -2,6 +2,7 @@
 #define __IMAGE_H__
 
 #include <fstream>
+#include <cassert>
 
 #pragma pack(push, 1)
 struct TGA_Header
@@ -37,6 +38,13 @@ struct TGAColor
 	TGAColor() : val(0), bytespp(1)
 	{
 	}
+
+	TGAColor(unsigned char v) : raw(), bytespp(1)
+	{
+        for (int i = 0; i < 4; i ++)
+			raw[i] = v;
+        raw[0] = v;
+    }
 
 	TGAColor(unsigned char R, unsigned char G, unsigned char B) : b(B), g(G), r(R), a(0), bytespp(4)
 	{
@@ -80,6 +88,12 @@ struct TGAColor
 		res.g = static_cast<unsigned char>(g * intensity);
 		res.a = static_cast<unsigned char>(a * intensity);
         return res;
+	}
+
+	const unsigned char operator[] (int idx) const
+	{
+		assert(idx >= 0 && idx < 4);
+		return raw[idx];
 	}
 };
 
