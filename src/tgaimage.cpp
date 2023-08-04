@@ -5,6 +5,17 @@
 #include <math.h>
 #include "tgaimage.h"
 
+
+int TGAImage::getWidth()
+{
+	return this->width;
+}
+
+int TGAImage::getHeight()
+{
+	return this->height;
+}
+
 TGAImage::TGAImage() : data(NULL), width(0), height(0), bytespp(0)
 {
 }

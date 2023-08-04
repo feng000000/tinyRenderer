@@ -32,7 +32,10 @@ public:
     Vec3f varying_intensity;
 
     // 用矩阵存三个点的纹理坐标, written by vertex shader, read by fragment shader
-    Matrix<2,3,float> varying_uv;
+    Matrix<2, 3, float> varying_uv;
+
+    Matrix<4, 4, float> uniform_M;   //  Projection*ModelView
+    Matrix<4, 4, float> uniform_MIT; // (Projection*ModelView).invert_transpose()
 
     // iface为三角形编号, nthvert为顶点编号, 返回屏幕坐标
     virtual Vec4f vertex(int iface, int nthvert) override
@@ -49,10 +52,15 @@ public:
     // bar为当前像素相对于三角形的重心坐标, color为当前像素的颜色, 返回是否丢弃该像素
     virtual bool fragment(Vec3f bar, TGAColor &color) override
     {
-        // 通过重心坐标插值计算强度
-        Vec2f uv        = varying_uv * bar;
-        float intensity = varying_intensity * bar;
+        // 通过重心坐标插值计算当前点的纹理坐标
+        Vec2f uv = varying_uv * bar;
 
+        Vec3f n = proj<3>(uniform_MIT * embed<4>(model->normal(uv))).normalize();
+        Vec3f l = proj<3>(uniform_M   * embed<4>(light_dir        )).normalize();
+
+        float intensity = std::max(0.f, n * l);
+
+        // color = TGAColor(255, 255, 255) * intensity;
         color = model->getTexture(uv) * intensity;
 
         // 是否丢弃该像素
@@ -63,7 +71,6 @@ public:
 int main(int argc, char **argv)
 {
     model = std::make_unique<Model>("../data/african_head.obj");
-    model->load_texture("../data/african_head_diffuse.tga");
 
     mygl::viewMatrix(cameraPos, lookPos, upPos);
     mygl::viewportMatrix(width / 8, height / 8, width * 3 / 4, height * 3 / 4);
@@ -73,6 +80,28 @@ int main(int argc, char **argv)
     TGAImage image  (width, height, TGAImage::RGB);
     TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
     GouraudShader shader;
+    shader.uniform_M   = mygl::projection * mygl::modelView;
+    // shader.uniform_MIT = (mygl::projection * mygl::modelView).invert_transpose();
+    shader.uniform_MIT = Matrix4f();
+    shader.uniform_MIT[0][0] = 1;
+    shader.uniform_MIT[0][1] = 0;
+    shader.uniform_MIT[0][2] = 0;
+    shader.uniform_MIT[0][3] = 0;
+
+    shader.uniform_MIT[1][0] = 0;
+    shader.uniform_MIT[1][1] = 1;
+    shader.uniform_MIT[1][2] = 0;
+    shader.uniform_MIT[1][3] = 0;
+
+    shader.uniform_MIT[2][0] = 0;
+    shader.uniform_MIT[2][1] = 0;
+    shader.uniform_MIT[2][2] = 1;
+    shader.uniform_MIT[2][3] = 0;
+
+    shader.uniform_MIT[3][0] = 0;
+    shader.uniform_MIT[3][1] = 0;
+    shader.uniform_MIT[3][2] = 0.333333;
+    shader.uniform_MIT[3][3] = 1;
 
     for (int i = 0; i < model->nfaces(); i ++)
     {
@@ -81,6 +110,9 @@ int main(int argc, char **argv)
             screen_coords[j] = shader.vertex(i, j);
         triangle(screen_coords, shader, image, zbuffer);
     }
+
+    std::cout << "projection" << std::endl << mygl::projection << std::endl
+              <<
 
     image.flip_vertically();
     zbuffer.flip_vertically();

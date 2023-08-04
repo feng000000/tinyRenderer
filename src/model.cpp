@@ -70,6 +70,9 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
     std::cerr << "# f# " << faces_.size() << std::endl;
     std::cerr << "# vt# " << textures_.size() << std::endl;
     std::cerr << "# vn# " << normals_.size() << std::endl;
+
+    load_texture("/home/feng/Code/tinyRenderer/data/african_head_diffuse.tga", this->textureMap);
+    load_texture("/home/feng/Code/tinyRenderer/data/african_head_nm.tga", this->normalMap);
 }
 
 Model::~Model()
@@ -102,10 +105,19 @@ Vec3f Model::vert(int iface, int ivert)
     return faces_[iface].nVert(ivert);
 }
 
-// 获取法线坐标, 参数为三角形编号和顶点编号
+// 获取法线向量, 参数为三角形编号和顶点编号(从obj文件中读到的法线坐标)
 Vec3f Model::normal(int iface, int ivert)
 {
     return faces_[iface].nNorm(ivert);
+}
+
+// 获取法线向量(从法线贴图获取)
+Vec3f Model::normal(Vec2f& uvf)
+{
+    TGAColor c = normalMap.get(uvf[0] * normalMap.getWidth(), uvf[1] * normalMap.getHeight());
+    // std::cout << "normal x, y, z: " << (float)c[2] << " " << (float)c[1] << " " << (float)c[0] << std::endl;
+    // return Vec3f{(float)c[2], (float)c[1], (float)c[0]} / 255.f;
+    return Vec3f{c[2], c[1], c[0]} * 2.f / 255.f - Vec3f{1, 1, 1};
 }
 
 // 获取纹理坐标, 参数为三角形编号和顶点编号
@@ -115,10 +127,12 @@ Vec2f Model::texture(int iface, int ivert)
 }
 
 
-void Model::load_texture(std::string filename)
+void Model::load_texture(std::string filename, TGAImage& img)
 {
-    this->textureMap.read_tga_file(filename.c_str());
-    this->textureMap.flip_vertically();
+    bool status = img.read_tga_file(filename.c_str());
+    std::cout << "load " << filename << " status: "
+              << (status ? "ok" : "failed") << std::endl;
+    img.flip_vertically();
 }
 
 
