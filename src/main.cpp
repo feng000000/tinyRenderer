@@ -54,14 +54,23 @@ public:
     {
         // 通过重心坐标插值计算当前点的纹理坐标
         Vec2f uv = varying_uv * bar;
-
+        // 法线
         Vec3f n = proj<3>(uniform_MIT * embed<4>(model->normal(uv))).normalize();
+        // 光的方向
         Vec3f l = proj<3>(uniform_M   * embed<4>(light_dir        )).normalize();
+        // 反射光方向
+        Vec3f r = (n * (n * l * 2.f) - l).normalize();
 
-        float intensity = std::max(0.f, n * l);
+        // specular镜面反射
+        float spec = pow(std::max(r.z, 0.0f), model->specular(uv));
+        // 漫反射, 即intensity
+        float diff = std::max(0.f, n * l);
 
         // color = TGAColor(255, 255, 255) * intensity;
-        color = model->getTexture(uv) * intensity;
+        color = model->getTexture(uv) * diff;
+        for (int i = 0; i < 3; i ++)
+            // 环境分量系数取5, 漫反射分量系数取1, 镜面反射分量取0.6, 但是通常系数之和要等于1
+            color[i] = std::min<float>(5 + color[i] * (1 * diff + 0.6f * spec), 255);
 
         // 是否丢弃该像素
         return false;
@@ -110,9 +119,6 @@ int main(int argc, char **argv)
             screen_coords[j] = shader.vertex(i, j);
         triangle(screen_coords, shader, image, zbuffer);
     }
-
-    std::cout << "projection" << std::endl << mygl::projection << std::endl
-              <<
 
     image.flip_vertically();
     zbuffer.flip_vertically();

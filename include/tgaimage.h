@@ -90,7 +90,7 @@ struct TGAColor
         return res;
 	}
 
-	const unsigned char operator[] (int idx) const
+	unsigned char& operator[] (const int idx)
 	{
 		assert(idx >= 0 && idx < 4);
 		return raw[idx];
@@ -133,6 +133,8 @@ public:
 	int get_bytespp();
 	unsigned char *buffer();
 	void clear();
+	int getWidth();
+	int getHeight();
 };
 
 #endif //__IMAGE_H__

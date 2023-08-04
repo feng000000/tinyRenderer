@@ -266,11 +266,10 @@ public:
     // --------------- ??? --------------- //
     Matrix<DimRows - 1, DimCols - 1, T> get_minor(size_t row, size_t col) const
     {
-        Matrix<DimRows - 1, DimCols - 1, T> res;
-        for (size_t i = 0; i < DimRows - 1; i ++)
-            for (size_t j = 0; j < DimCols - 1; j ++)
-                res[i][j] = rows[i < row ? i : i + 1][j < col ? j : j + 1];
-         return res;
+        Matrix<DimRows-1,DimCols-1,T> ret;
+        for (size_t i=DimRows-1; i--; )
+            for (size_t j=DimCols-1;j--; ret[i][j]=rows[i<row?i:i+1][j<col?j:j+1]);
+        return ret;
     }
 
     T cofactor(size_t row, size_t col) const

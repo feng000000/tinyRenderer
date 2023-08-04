@@ -72,6 +72,7 @@ Model::Model(const char *filename) : verts_(), faces_(), normals_()
     std::cerr << "# vn# " << normals_.size() << std::endl;
 
     load_texture("/home/feng/Code/tinyRenderer/data/african_head_diffuse.tga", this->textureMap);
+    load_texture("/home/feng/Code/tinyRenderer/data/african_head_spec.tga", this->specularMap);
     load_texture("/home/feng/Code/tinyRenderer/data/african_head_nm.tga", this->normalMap);
 }
 
@@ -115,9 +116,8 @@ Vec3f Model::normal(int iface, int ivert)
 Vec3f Model::normal(Vec2f& uvf)
 {
     TGAColor c = normalMap.get(uvf[0] * normalMap.getWidth(), uvf[1] * normalMap.getHeight());
-    // std::cout << "normal x, y, z: " << (float)c[2] << " " << (float)c[1] << " " << (float)c[0] << std::endl;
-    // return Vec3f{(float)c[2], (float)c[1], (float)c[0]} / 255.f;
-    return Vec3f{c[2], c[1], c[0]} * 2.f / 255.f - Vec3f{1, 1, 1};
+    // 切线方向范围为 (-1, 1)映射到了(0, 255), 要将它映射回来
+    return Vec3f{(float)c[2], (float)c[1], (float)c[0]} * 2.f / 255.f - Vec3f{1, 1, 1};
 }
 
 // 获取纹理坐标, 参数为三角形编号和顶点编号
@@ -139,8 +139,9 @@ void Model::load_texture(std::string filename, TGAImage& img)
 // 获取纹理, 参数为纹理坐标
 TGAColor Model::getTexture(Vec2f uv)
 {
-    return this->textureMap.get(uv[0] * this->textureMap.get_width(),
-                                uv[1] * this->textureMap.get_height());
+    return this->textureMap.get(
+        uv[0] * this->textureMap.get_width(),
+        uv[1] * this->textureMap.get_height());
 }
 
 
@@ -198,4 +199,11 @@ Vec3f Trangle::nNorm(int idx)
 Vec2f Trangle::nTexture(int idx)
 {
     return textures_[idx];
+}
+
+// 从镜面反射贴图中获取镜面反射分;量
+float Model::specular(Vec2f uvf)
+{
+    Vec2i uv(uvf[0]*specularMap.get_width(), uvf[1]*specularMap.get_height());
+    return specularMap.get(uv[0], uv[1])[0]/1.f;
 }
