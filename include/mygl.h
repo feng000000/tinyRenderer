@@ -4,6 +4,7 @@
 
 namespace mygl
 {
+// 用extern防止多次定义
 extern Matrix4f modelView;
 extern Matrix4f viewport;
 extern Matrix4f projection;
