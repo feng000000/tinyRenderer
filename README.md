@@ -1,5 +1,5 @@
 # tinyRender学习笔记
-[原作者github地址](https://github.com/ssloy/tinyrenderer)
+[课程github地址](https://github.com/ssloy/tinyrenderer)
 
 该项目在仅使用一个对tga图片像素设置颜色的API的情况下, 实现一个迷你的光栅化渲染器.
 
